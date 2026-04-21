@@ -1,20 +1,19 @@
 # ⚜ Medievalizer
 
-A Chrome extension that transforms any documentation page into an illuminated medieval manuscript — blackletter headings, Shakespearean prose, parchment styling — powered by Claude Sonnet.
-
-![Side panel showing medievalized documentation on a parchment background with blackletter headings](docs/screenshot.png)
+A Chrome extension that transforms any documentation page into an illuminated medieval manuscript — blackletter headings, Shakespearean prose, parchment styling — powered by Claude Sonnet. The page transforms in-place; click again to restore the original.
 
 ---
 
 ## Features
 
-- **One-click conversion** — open the side panel, press *Medievalize*, done.
-- **Streaming output** — text appears word by word as the scribe writes.
+- **One-click conversion** — click the icon, the page transforms before your eyes.
+- **Click again to restore** — a second click (or the *Restore Page* button) brings the original back instantly.
+- **Streaming output** — text appears word by word as the scribe writes, with a blinking quill cursor.
+- **Full-page takeover** — Shadow DOM overlay covers the viewport with a parchment manuscript; the original DOM is untouched underneath.
 - **Faithful technical preservation** — all code blocks, commands, and inline code are reproduced character-for-character; only the prose is rewritten.
 - **Rich medieval language** — Shakespearean inversions, archaic vocabulary, consistent metaphor map (`install` → *summon*, `error` → *affliction*, `API` → *the Arcane Interface*, etc.).
 - **Document structure preserved** — headings stay headings, lists stay lists, code fences stay code fences.
 - **Drop cap + colophon** — every manuscript opens with an illuminated first letter and closes with a scribe's colophon.
-- **Parchment UI** — UnifrakturMaguntia blackletter headings, IM Fell English body text, scroll-roll decorations.
 
 ---
 
@@ -43,13 +42,21 @@ Then follow steps 3–5 above, pointing *Load unpacked* at the cloned directory.
 ## Usage
 
 1. Navigate to any documentation page in Chrome.
-2. Click the **Medievalizer** icon in the toolbar — the side panel opens.
-3. On first launch, enter your [Anthropic API key](https://console.anthropic.com/) (`sk-ant-...`). It is stored locally in `chrome.storage.local` and never leaves your browser.
-4. Click **⚔ Medievalize this Page ⚔**.
-5. The scribe begins transcribing. Watch the parchment fill up in real time.
-6. Use **Copy Text** to copy the plain-text markdown, or **New** to go back and try another page.
+2. Click the **Medievalizer** icon in the toolbar.
+   - First launch: the settings page opens automatically — enter your API key, then return to the page and click the icon again.
+3. The page fades into a parchment scroll and the scribe begins writing.
+4. Use **⎘ Copy** to copy the plain-text markdown output.
+5. Click **↶ Restore Page** (or the icon again) to return to the original.
 
-> **Note:** Pages longer than ~25 000 characters are truncated at the input stage; the scribe will note this at the bottom of the manuscript.
+> **Note:** Pages longer than ~25 000 characters are truncated at the input stage; the scribe notes this at the bottom of the manuscript.
+
+---
+
+## Configuration
+
+Right-click the extension icon and choose **Options** to manage your API key at any time.
+
+Your key is stored in `chrome.storage.local` — it never leaves your browser.
 
 ---
 
@@ -57,10 +64,9 @@ Then follow steps 3–5 above, pointing *Load unpacked* at the cloned directory.
 
 | Permission | Why |
 |---|---|
-| `sidePanel` | Renders the output panel alongside the page |
-| `activeTab` + `scripting` | Injects the content extractor into the current tab |
+| `activeTab` + `scripting` | Injects the transform script into the current tab |
 | `storage` | Saves your API key locally |
-| `<all_urls>` (host permission) | Allows the content script to run on any documentation site, and the background worker to reach `api.anthropic.com` |
+| `<all_urls>` (host permission) | Allows the transform script to run on any documentation site, and the background worker to reach `api.anthropic.com` |
 
 ---
 
@@ -70,11 +76,9 @@ Then follow steps 3–5 above, pointing *Load unpacked* at the cloned directory.
 
 ```
 manifest.json        MV3 extension manifest
-background.js        Service worker — Claude API calls, SSE streaming
-content.js           Injected into the page — DOM → markdown extraction
-sidepanel.html       Side panel markup
-sidepanel.js         Side panel logic + markdown renderer
-sidepanel.css        Medieval parchment styling
+background.js        Service worker — action click handler, Claude API streaming
+transform.js         Injected into the page — DOM extraction, Shadow DOM overlay, rendering
+options.html/js/css  API key settings page
 icons/
   generate_icons.py  Pure-Python stdlib icon generator (no dependencies)
   icon{16,32,48,128}.png

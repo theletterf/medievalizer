@@ -33,12 +33,12 @@ jobs:
       - name: Build ZIP
         run: |
           zip medievalizer-v${{ inputs.version }}.zip \
-            manifest.json   \
-            background.js   \
-            content.js      \
-            sidepanel.html  \
-            sidepanel.js    \
-            sidepanel.css   \
+            manifest.json  \
+            background.js  \
+            transform.js   \
+            options.html   \
+            options.js     \
+            options.css    \
             icons/icon16.png  \
             icons/icon32.png  \
             icons/icon48.png  \
@@ -56,7 +56,7 @@ jobs:
             2. Open Chrome and navigate to `chrome://extensions`.
             3. Enable **Developer mode** (toggle in the top-right corner).
             4. Click **Load unpacked** and select the unzipped folder.
-            5. Click the Medievalizer icon in the toolbar to open the side panel.
-            6. Enter your [Anthropic API key](https://console.anthropic.com/) on first launch.
+            5. Click the Medievalizer icon in the toolbar to medievalize any page.
+            6. On first launch, the extension opens the settings page — enter your [Anthropic API key](https://console.anthropic.com/).
           files: medievalizer-v${{ inputs.version }}.zip
           fail_on_unmatched_files: true

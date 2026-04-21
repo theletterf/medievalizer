@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Medievalizer — Settings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <header>
+    <div class="title">&#x2767; Medievalizer &#x2767;</div>
+    <div class="subtitle">Settings</div>
+  </header>
+
+  <main>
+    <label for="api-key">Anthropic API Key</label>
+    <input
+      type="password"
+      id="api-key"
+      placeholder="sk-ant-api03-..."
+      autocomplete="off"
+      spellcheck="false"
+    >
+    <p class="hint">
+      Thy key is stored locally and never leaveth thy device.<br>
+      <a href="https://console.anthropic.com/" target="_blank">Obtain a key from the Anthropic Console &#x2197;</a>
+    </p>
+    <button id="save-btn">Seal &amp; Save</button>
+    <div id="status" class="hidden"></div>
+  </main>
+
+  <footer>
+    To medievalize a page, navigate thither and click the extension icon.<br>
+    Click again to restore the original.
+  </footer>
+
+  <script src="options.js"></script>
+</body>
+</html>

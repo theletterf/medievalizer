@@ -1,6 +1,19 @@
-// Open side panel automatically when the extension icon is clicked
-chrome.runtime.onInstalled.addListener(() => {
-  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+// On icon click: inject the transform script (or open options if no key is set)
+chrome.action.onClicked.addListener(async (tab) => {
+  const { apiKey } = await chrome.storage.local.get('apiKey');
+  if (!apiKey) {
+    chrome.runtime.openOptionsPage();
+    return;
+  }
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ['transform.js'],
+    });
+  } catch (err) {
+    // chrome:// pages and the Web Store block injection
+    console.warn('Medievalizer: cannot inject into this page.', err.message);
+  }
 });
 
 const SYSTEM_PROMPT = `You are a learned scribe of the Middle Ages, tasked with transcribing modern technical documentation into the style of ancient manuscripts from the Early Modern English period (circa 1590–1620, the Shakespearean age).
@@ -55,45 +68,34 @@ Translate modern concepts consistently throughout the prose:
 - Preserve markdown formatting (bold, italic, code fences, headers, lists).
 - Match the structure of the input document faithfully.`;
 
-// Handle long-lived port connections from the side panel
+// Handle streaming connections from transform.js
 chrome.runtime.onConnect.addListener((port) => {
   if (port.name !== 'medievalize') return;
 
   port.onMessage.addListener(async (msg) => {
-    if (msg.type === 'START') {
-      await runMedievalization(port, msg.tabId, msg.apiKey);
+    if (msg.type !== 'START') return;
+
+    const { apiKey } = await chrome.storage.local.get('apiKey');
+    if (!apiKey) {
+      port.postMessage({ type: 'ERROR', message: 'No API key configured. Right-click the extension icon and choose Options.' });
+      return;
     }
+
+    await runMedievalization(port, msg.content, msg.title, msg.url, apiKey);
   });
 });
 
-async function runMedievalization(port, tabId, apiKey) {
-  // Inject content extractor and get page content
-  let pageData;
-  try {
-    const results = await chrome.scripting.executeScript({
-      target: { tabId },
-      files: ['content.js'],
-    });
-    pageData = results[0]?.result;
-  } catch (err) {
-    port.postMessage({ type: 'ERROR', message: `Cannot read this page: ${err.message}` });
-    return;
-  }
-
-  if (!pageData?.content?.trim()) {
+async function runMedievalization(port, content, title, url, apiKey) {
+  if (!content?.trim()) {
     port.postMessage({ type: 'ERROR', message: 'No readable content found on this page.' });
     return;
   }
 
-  // Truncate very long pages to stay within a sensible input budget
   const MAX_CHARS = 25000;
-  let content = pageData.content;
   const wasTruncated = content.length > MAX_CHARS;
-  if (wasTruncated) {
-    content = content.slice(0, MAX_CHARS) + '\n\n[...the remainder of this tome has been abbreviated by the scribe...]';
-  }
-
-  const userMessage = `Page title: ${pageData.title}\nURL: ${pageData.url}\n\n---\n\n${content}`;
+  const processedContent = wasTruncated
+    ? content.slice(0, MAX_CHARS) + '\n\n[...the remainder of this tome has been abbreviated by the scribe...]'
+    : content;
 
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -108,21 +110,20 @@ async function runMedievalization(port, tabId, apiKey) {
         max_tokens: 8192,
         stream: true,
         system: SYSTEM_PROMPT,
-        messages: [{ role: 'user', content: userMessage }],
+        messages: [{
+          role: 'user',
+          content: `Page title: ${title}\nURL: ${url}\n\n---\n\n${processedContent}`,
+        }],
       }),
     });
 
     if (!response.ok) {
       let errorMsg = `API error ${response.status}`;
-      try {
-        const errBody = await response.json();
-        errorMsg = errBody.error?.message || errorMsg;
-      } catch (_) {}
+      try { errorMsg = (await response.json()).error?.message || errorMsg; } catch (_) {}
       port.postMessage({ type: 'ERROR', message: errorMsg });
       return;
     }
 
-    // Parse the SSE stream and forward text chunks to the side panel
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = '';
@@ -139,7 +140,6 @@ async function runMedievalization(port, tabId, apiKey) {
         if (!line.startsWith('data: ')) continue;
         const data = line.slice(6).trim();
         if (data === '[DONE]') continue;
-
         try {
           const event = JSON.parse(data);
           if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
