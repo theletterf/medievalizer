@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Medievalizer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="app-title">&#x2767; Medievalizer &#x2767;</div>
+    <div class="app-subtitle">Illuminated Manuscripts for the Modern Age</div>
+  </header>
+
+  <!-- API key setup screen -->
+  <section id="setup-screen" class="panel-section hidden">
+    <p class="setup-text">
+      Prithee, enter thine Claude API key that the scribe may begin his work:
+    </p>
+    <input
+      type="password"
+      id="api-key-input"
+      class="key-input"
+      placeholder="sk-ant-api03-..."
+      autocomplete="off"
+      spellcheck="false"
+    >
+    <button id="save-key-btn" class="btn btn-primary">Seal the Key</button>
+    <div id="setup-error" class="error-box hidden"></div>
+  </section>
+
+  <!-- Main action screen -->
+  <section id="main-screen" class="panel-section hidden">
+    <button id="medievalize-btn" class="btn btn-primary btn-large">
+      &#9876; Medievalize this Page &#9876;
+    </button>
+    <button id="change-key-btn" class="btn btn-ghost">Change API Key</button>
+  </section>
+
+  <!-- Loading state -->
+  <div id="loading" class="loading-area hidden">
+    <div class="quill">&#9997;</div>
+    <p class="loading-text">The scribe doth transcribe&hellip;</p>
+  </div>
+
+  <!-- Error display -->
+  <div id="error-box" class="error-box hidden"></div>
+
+  <!-- Manuscript output -->
+  <div id="output-container" class="hidden">
+    <div class="scroll-controls">
+      <button id="copy-btn" class="btn btn-ghost btn-small">&#128203; Copy Text</button>
+      <button id="new-btn" class="btn btn-ghost btn-small">&#8635; New</button>
+    </div>
+    <div class="scroll-roll scroll-top"></div>
+    <div class="manuscript">
+      <div id="output"></div>
+    </div>
+    <div class="scroll-roll scroll-bottom"></div>
+    <div id="truncation-notice" class="truncation-notice hidden">
+      &#9998; <em>This tome was of great length; the scribe hath reproduced the first portion faithfully.</em>
+    </div>
+  </div>
+
+  <script src="sidepanel.js"></script>
+</body>
+</html>
