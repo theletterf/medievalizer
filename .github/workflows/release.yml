@@ -1,0 +1,62 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'SemVer version (e.g. 1.2.0)'
+        required: true
+        type: string
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate SemVer
+        run: |
+          if ! [[ "${{ inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Version must follow SemVer (e.g. 1.2.0)"
+            exit 1
+          fi
+
+      - name: Stamp version into manifest.json
+        run: |
+          jq '.version = "${{ inputs.version }}"' manifest.json > /tmp/manifest.json
+          mv /tmp/manifest.json manifest.json
+
+      - name: Build ZIP
+        run: |
+          zip medievalizer-v${{ inputs.version }}.zip \
+            manifest.json   \
+            background.js   \
+            content.js      \
+            sidepanel.html  \
+            sidepanel.js    \
+            sidepanel.css   \
+            icons/icon16.png  \
+            icons/icon32.png  \
+            icons/icon48.png  \
+            icons/icon128.png
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ inputs.version }}
+          name: v${{ inputs.version }}
+          body: |
+            ## Installation
+
+            1. Download **medievalizer-v${{ inputs.version }}.zip** below and unzip it.
+            2. Open Chrome and navigate to `chrome://extensions`.
+            3. Enable **Developer mode** (toggle in the top-right corner).
+            4. Click **Load unpacked** and select the unzipped folder.
+            5. Click the Medievalizer icon in the toolbar to open the side panel.
+            6. Enter your [Anthropic API key](https://console.anthropic.com/) on first launch.
+          files: medievalizer-v${{ inputs.version }}.zip
+          fail_on_unmatched_files: true
