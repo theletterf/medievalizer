@@ -2,6 +2,8 @@
 
 A Chrome extension that transforms any documentation page into an illuminated medieval manuscript — blackletter headings, Shakespearean prose, parchment styling — powered by Claude Sonnet. The page transforms in-place; click again to restore the original.
 
+<img width="1280" height="701" alt="medievalizer" src="https://github.com/user-attachments/assets/b253e08c-70e3-4827-9e1d-a33de3e72f35" />
+
 ---
 
 ## Features
