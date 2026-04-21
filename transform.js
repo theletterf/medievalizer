@@ -8,8 +8,21 @@
   if (existing) {
     existing.remove();
     document.querySelectorAll('[data-medievalizer]').forEach((el) => el.remove());
+    chrome.runtime.sendMessage({ type: 'RESTORED' }); // tells background to clear the badge
     return;
   }
+
+  const SCRIBE_MESSAGES = [
+    'The scribe doth sharpen his quill…',
+    'Consulting the ancient tomes of knowledge…',
+    'Translating thy modern tongue into archaic script…',
+    'Applying gilded ink to parchment…',
+    'Invoking the spirits of antiquity…',
+    'Transcribing by candlelight…',
+    'The illuminated manuscript taketh form…',
+    'Beseeching the muses for divine inspiration…',
+    'Perusing the sacred scrolls for guidance…',
+  ];
 
   // ── Embedded styles (scoped inside Shadow DOM) ─────────────────────────────
   const CSS = `
@@ -56,6 +69,16 @@
     }
 
     .ctrl-btns { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+
+    .word-count {
+      font-size: 11px;
+      font-style: italic;
+      color: #c8a84b;
+      opacity: 0.65;
+      flex: 1;
+      text-align: center;
+      letter-spacing: 0.3px;
+    }
 
     .btn {
       cursor: pointer;
@@ -294,6 +317,7 @@
     <div class="page">
       <div class="controls">
         <span class="brand">&#x2767;&nbsp;Medievalizer&nbsp;&#x2767;</span>
+        <span class="word-count hidden" id="word-count"></span>
         <div class="ctrl-btns">
           <button class="btn" id="copy-btn">&#x2398; Copy</button>
           <button class="btn btn-restore" id="restore-btn">&#x21B6; Restore Page</button>
@@ -302,7 +326,7 @@
       <div class="content-area">
         <div class="loading" id="loading">
           <div class="quill">&#9997;</div>
-          <p>The scribe doth transcribe&hellip;</p>
+          <p id="loading-text">${SCRIBE_MESSAGES[0]}</p>
         </div>
         <div class="manuscript hidden" id="manuscript">
           <div class="scroll-roll"></div>
@@ -334,13 +358,29 @@
   // ── Streaming ──────────────────────────────────────────────────────────────
 
   const loadingEl    = shadow.querySelector('#loading');
+  const loadingText  = shadow.querySelector('#loading-text');
   const manuscriptEl = shadow.querySelector('#manuscript');
   const outputEl     = shadow.querySelector('#output');
+  const wordCountEl  = shadow.querySelector('#word-count');
+
+  // Cycle loading messages while waiting for the first chunk
+  let msgIdx = 0;
+  const msgTimer = setInterval(() => {
+    msgIdx = (msgIdx + 1) % SCRIBE_MESSAGES.length;
+    loadingText.textContent = SCRIBE_MESSAGES[msgIdx];
+  }, 2500);
 
   const port = chrome.runtime.connect({ name: 'medievalize' });
 
   let accumulated   = '';
   let renderPending = false;
+  let streamingStarted = false;
+
+  function updateWordCount() {
+    const words = accumulated.trim().split(/\s+/).filter(Boolean).length;
+    wordCountEl.textContent = `~${words.toLocaleString()} words transcribed`;
+    wordCountEl.classList.remove('hidden');
+  }
 
   function showOutput(streaming) {
     loadingEl.classList.add('hidden');
@@ -354,19 +394,31 @@
 
   port.onMessage.addListener((msg) => {
     if (msg.type === 'CHUNK') {
+      if (!streamingStarted) {
+        streamingStarted = true;
+        clearInterval(msgTimer); // stop cycling messages once text arrives
+      }
       accumulated += msg.text;
       if (!renderPending) {
         renderPending = true;
-        requestAnimationFrame(() => { renderPending = false; showOutput(true); });
+        requestAnimationFrame(() => {
+          renderPending = false;
+          showOutput(true);
+          updateWordCount();
+        });
       }
     } else if (msg.type === 'DONE') {
+      clearInterval(msgTimer);
       showOutput(false);
+      updateWordCount();
     } else if (msg.type === 'ERROR') {
+      clearInterval(msgTimer);
       loadingEl.innerHTML = `<p class="error-msg">The mystical arts have failed:<br>${escHtml(msg.message)}</p>`;
     }
   });
 
   port.onDisconnect.addListener(() => {
+    clearInterval(msgTimer);
     if (accumulated) showOutput(false);
     else loadingEl.innerHTML = '<p class="error-msg">The connection was severed unexpectedly.</p>';
   });
